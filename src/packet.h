@@ -19,6 +19,7 @@ enum PktType : uint8_t {
   PKT_JOIN = 5,    // join request in a free slot: permanent ID, name (src = 0xFF)
   PKT_DIR = 6,     // directory: up to 3 x (permanent ID, short address, name)
   PKT_ALIVE = 7,   // header-only keepalive from an idle member
+  PKT_VOICE = 8,   // Codec2 voice: header flags = mode<<4 | frames, payload = frames (floor mode)
 };
 
 #define ADDR_NONE 0xFF

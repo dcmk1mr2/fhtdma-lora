@@ -53,7 +53,7 @@ int64_t lastOwnTxSlot();    // last slot this node transmitted in one of its own
 
 struct Counters {
   uint32_t txOk, txFail, rxOk, rxCrc, queueFull, txLate, txOverrun;
-  uint32_t txByType[8];  // packets started, by PktType (index 0 = unknown)
+  uint32_t txByType[9];  // packets started, by PktType (index 0 = unknown)
 };
 const Counters& counters();
 

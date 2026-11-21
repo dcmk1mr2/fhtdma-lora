@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include "app.h"
 #include "audio.h"
+#include "voice.h"
 #include "config.h"
 #include "display.h"
 #include "gps.h"
@@ -53,6 +54,8 @@ void setup() {
   step("display");
   display::begin();
   if (!safe) {
+    step("voice");
+    voice::begin();
     step("audio");
     audio::begin();
   }
@@ -68,4 +71,5 @@ void loop() {
   terminal::loop();
   display::loop();
   audio::loop();
+  voice::loop();
 }

@@ -1,6 +1,7 @@
 #include "audio.h"
 #include "config.h"
 #include "settings.h"
+#include "voice.h"
 
 #if HAS_AUDIO
 #include <driver/i2s.h>
@@ -135,10 +136,14 @@ static void audioTask(void*) {
     s_peakDb = 20.0f * log10f(peak / 32768.0f + 1e-6f);
     s_blocks++;
 
+    voice::onMicBlock(pcm, n);
+
     bool play = true;
     int32_t g = s_gainQ8;
     if (s_tone) {
       for (int i = 0; i < n; i++) out[i] = sat16((SINE8[(phase++) & 7] * g) >> 8);
+    } else if (voice::playBlock(out, n)) {
+      for (int i = 0; i < n; i++) out[i] = sat16((out[i] * g) >> 8);
     } else {
       Loop m = s_loop;
       if (m == Loop::On || (m == Loop::Ptt && s_pttDown)) {
@@ -185,7 +190,8 @@ void begin() {
 #endif
 
   // Core 1 with the main loop; the radio task owns core 0.
-  xTaskCreatePinnedToCore(audioTask, "audio", 4096, nullptr, 2, nullptr, 1);
+  // Codec2 needs a deep stack for encode/decode.
+  xTaskCreatePinnedToCore(audioTask, "audio", 24576, nullptr, 2, nullptr, 1);
   s_ok = true;
 }
 

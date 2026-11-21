@@ -14,6 +14,9 @@ https://claude.ai/artifact/E8x5DL42hH3cXBXfDEWVhU
 
 ## Status
 
+**0.6.0: Codec2 push-to-talk voice.** Hold PTT and talk; every node in the net plays
+it. See "Voice" below. Host-tested with the real Codec2 library, not yet on hardware.
+
 **0.5.1:** `audio gain` goes down to -40 dB, applies to the test tone too, and is saved (default -12 dB).
 
 **0.5.0:** MAX98357A I2S amp output. The amp shares the mic's BCLK (GPIO4) and LRC (GPIO5); DIN on GPIO6. New `audio gain`. `audio mic left|right` no longer restarts the driver.
@@ -159,6 +162,31 @@ Bench checks:
 3. `audio loop ptt`: hold PTT and talk to hear yourself (keep the speaker away from
    the mic). `[PTT down]` / `[PTT up]` print on the terminal and PTT shows on the OLED.
 
+## Voice (Heltec V3)
+
+Hold PTT and talk. The talker gets the floor: it sends a voice packet in every slot
+except the net manager's beacon slot (and the bench sync slot in bench time mode).
+Everyone else stays off the air while voice is heard and plays it through the
+MAX98357A. When PTT is released the talker flushes what's queued and normal traffic
+resumes. If someone is already talking, PTT prints "Channel busy" and waits.
+
+| Codec2 | Frame          | Per slot (120 ms)        | Notes |
+|--------|----------------|--------------------------|-------|
+| 2400   | 6 bytes, 20 ms | up to 7 frames, 42 bytes | default, best quality; in bench time mode about 2% of frames are dropped (the sync slot) |
+| 1600   | 8 bytes, 40 ms | up to 5 frames, 40 bytes | no drops in any mode |
+| 1200   | 6 bytes, 40 ms | up to 7 frames, 42 bytes | no drops, lower quality |
+
+Codec mode and frame count ride in the packet header's flags byte, so listeners
+follow whatever the talker sends. Playback starts with about 180 ms buffered, so
+mouth-to-ear delay is roughly 300-400 ms. The net manager doesn't free silent nodes'
+slots while voice is active. Voice needs hop on and time sync (bench or gps).
+
+Commands: `set voice on|off`, `set codec 2400|1600|1200`, and `status` shows voice
+counters (packets, lost, encode/decode time). `audio gain` sets playback volume.
+
+Codec2 comes from https://github.com/meshtastic/ESP32_Codec2 (pinned in platformio.ini,
+heltec_v3 env only). It downloads on the first build.
+
 ## Terminal commands
 
 ```
@@ -188,6 +216,8 @@ set power <dBm>      TX power, 2-17 (SX1276) or 2-22 (SX1262), default 2
 set interval <ms>    test ping interval when hop is off
 set time <mode>      local | bench | benchmaster | gps
 set gps <rx> [tx] [pps]  GPS pins on the ESP32 (reboot to apply)
+set voice on|off     PTT sends Codec2 voice (default on)
+set codec <rate>     Codec2 2400 (default), 1600 or 1200
 pinscan              find which GPIO a signal (e.g. GPS TX) is wired to
 reboot
 ```
@@ -250,6 +280,7 @@ src/app.*          text, test mode, beacons, per-node stats
 src/terminal.*     serial terminal
 src/display.*      OLED status screen
 src/audio.*        INMP441 I2S mic, MAX98357A I2S out (or sigma-delta), PTT, audio tests
+src/voice.*        Codec2 push-to-talk: encode, floor control, jitter buffer, decode
 src/net.*          net manager: listen, join, slot map, N growth, names, failover
 test/host/         host test for the hop sequence:
                    g++ -std=c++17 -I. -I../../src test_hopseq.cpp ../../src/hopseq.cpp -lcrypto

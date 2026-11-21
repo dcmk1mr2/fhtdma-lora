@@ -1,4 +1,5 @@
 #include "radio.h"
+#include "voice.h"
 #include "config.h"
 #include "hopseq.h"
 #include "net.h"
@@ -103,7 +104,7 @@ static void startTx(TxItem& it) {
     s_state = State::Tx;
     digitalWrite(PIN_LED, HIGH);
     uint8_t ty = it.len ? (it.buf[0] & 0x3F) : 0;
-    s_counters.txByType[ty < 8 ? ty : 0]++;
+    s_counters.txByType[ty < 9 ? ty : 0]++;
   } else {
     s_counters.txFail++;
     startRx();
@@ -249,6 +250,20 @@ static void runSlotted() {
     } else {
       size_t len = 0;
       net::SlotUse use = net::planSlot(slot, pending.buf, sizeof(pending.buf), len);
+      // Voice floor: the talker sends in every slot except the manager's beacon
+      // slot (position 0 in a managed net); everyone else stays quiet meanwhile.
+      bool beaconSlot = use == net::SlotUse::Beacon ||
+                        (net::role() != net::Role::Static && net::position(slot) == 0);
+      if (voice::transmitting() && !beaconSlot) {
+        size_t vlen = voice::fillSlot(pending.buf, sizeof(pending.buf));
+        if (vlen >= PKT_HEADER_LEN) pending.buf[2] = net::myAddr();
+        pending.len = (uint8_t)vlen;
+        pending.stampOffset = -1;
+        havePending = vlen > 0;
+        use = net::SlotUse::None;
+      } else if (voice::floorBusy() && use != net::SlotUse::Beacon) {
+        use = net::SlotUse::None;
+      }
       if (use == net::SlotUse::Own) {
         havePending = fillFromQueueOrFiller(SlotKind::Own, slot, pending, pendingFromQueue);
         if (havePending && pending.len >= PKT_HEADER_LEN) {

@@ -1,5 +1,6 @@
 #include "app.h"
 #include "audio.h"
+#include "voice.h"
 #include "config.h"
 #include "packet.h"
 #include "radio.h"
@@ -34,7 +35,7 @@ struct NodeStats {
   uint32_t lastHeardMs;
 };
 static NodeStats s_stats[256];
-static uint32_t s_rxByType[8];  // packets of this net received, by PktType
+static uint32_t s_rxByType[9];  // packets of this net received, by PktType
 
 static uint16_t nextSeq() { return __atomic_fetch_add(&s_seq, 1, __ATOMIC_RELAXED); }
 
@@ -62,7 +63,7 @@ static void onRx(const uint8_t* data, size_t len, const radio::RxInfo& info) {
     s_foreignNet++;
     return;
   }
-  s_rxByType[h.type < 8 ? h.type : 0]++;
+  s_rxByType[h.type < 9 ? h.type : 0]++;
   net::onPacket(h.type, h.src, p, plen, info.slot, info.rssi);
   uint8_t me = net::myAddr();
   // Only meaningful once addresses are real: static slots, or joined to a managed net.
@@ -126,6 +127,9 @@ static void onRx(const uint8_t* data, size_t len, const radio::RxInfo& info) {
       }
       break;
     }
+    case PKT_VOICE:
+      voice::onPacket(h.src, h.seq, h.flags, p, plen);
+      break;
     default:
       break;
   }
@@ -249,9 +253,9 @@ void printStats(Print& out) {
   out.printf("radio: tx %lu, tx fail %lu, late %lu, overrun %lu, rx %lu, crc err %lu, queue full %lu, other nets %lu\r\n",
              (unsigned long)c.txOk, (unsigned long)c.txFail, (unsigned long)c.txLate, (unsigned long)c.txOverrun,
              (unsigned long)c.rxOk, (unsigned long)c.rxCrc, (unsigned long)c.queueFull, (unsigned long)s_foreignNet);
-  static const char* tn[8] = {"?", "text", "test", "timebcn", "netbcn", "join", "dir", "alive"};
+  static const char* tn[9] = {"?", "text", "test", "timebcn", "netbcn", "join", "dir", "alive", "voice"};
   out.print("by type:   ");
-  for (int i = 1; i < 8; i++) out.printf(" %s %lu/%lu", tn[i], (unsigned long)c.txByType[i], (unsigned long)s_rxByType[i]);
+  for (int i = 1; i < 9; i++) out.printf(" %s %lu/%lu", tn[i], (unsigned long)c.txByType[i], (unsigned long)s_rxByType[i]);
   out.print("  (tx/rx)\r\n");
 }
 
@@ -297,6 +301,7 @@ void printStatus(Print& out) {
   }
   out.printf("Test mode: %s\r\n", s_testMode ? "on" : "off");
   audio::printStatus(out);
+  voice::printStatus(out);
 }
 
 }  // namespace app

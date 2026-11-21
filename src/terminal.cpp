@@ -1,6 +1,7 @@
 #include "terminal.h"
 #include "app.h"
 #include "audio.h"
+#include "voice.h"
 #include "config.h"
 #include "gps.h"
 #include "net.h"
@@ -69,6 +70,8 @@ static void help() {
       "  set interval <ms>    test ping interval when hop is off (200-60000)\r\n"
       "  set time <mode>      local | bench | benchmaster | gps\r\n"
       "  set gps <rx> [tx] [pps]  GPS pins (rx = pin wired to GPS TX); reboot to apply\r\n"
+      "  set voice on|off     PTT sends Codec2 voice to the net\r\n"
+      "  set codec <rate>     Codec2 bit rate: 2400 (default), 1600 or 1200\r\n"
       "  pinscan              find which GPIO a signal (e.g. GPS TX) is wired to\r\n"
       "  reboot               restart the board\r\n"
       "Settings are saved automatically.\r\n");
@@ -96,6 +99,7 @@ static void showSettings() {
   Serial.printf("  power     %d dBm\r\n", g_settings.powerDbm);
   Serial.printf("  interval  %u ms\r\n", g_settings.testIntervalMs);
   Serial.printf("  time      %s\r\n", timeModeName(g_settings.timeMode));
+  Serial.printf("  voice     %s, codec %u\r\n", g_settings.voiceOn ? "on" : "off", g_settings.voiceBitrate);
   Serial.printf("  gps       rx %d, tx %d, pps %d  (-1 = not wired)\r\n", g_settings.gpsRx, g_settings.gpsTx,
                 g_settings.gpsPps);
 }
@@ -152,7 +156,7 @@ static void cmdSet(char* key, char* val, bool extra) {
     return;
   }
   if (!val) {
-    Serial.print("usage: set <call|name|netmode|listen|id|n|hop|ch|power|interval|time|gps> <value>  (set alone lists them)\r\n");
+    Serial.print("usage: set <call|name|netmode|listen|id|n|hop|ch|power|interval|time|gps|voice|codec> <value>  (set alone lists them)\r\n");
     return;
   }
   if (extra) {
@@ -252,6 +256,24 @@ static void cmdSet(char* key, char* val, bool extra) {
       return;
     }
     g_settings.testIntervalMs = (uint16_t)v;
+  } else if (!strcasecmp(key, "voice")) {
+    if (!strcasecmp(val, "on")) g_settings.voiceOn = true;
+    else if (!strcasecmp(val, "off")) g_settings.voiceOn = false;
+    else {
+      Serial.print("voice must be on or off\r\n");
+      return;
+    }
+  } else if (!strcasecmp(key, "codec")) {
+    long v;
+    if (!parseNum(val, 1200, 2400, v) || (v != 2400 && v != 1600 && v != 1200)) {
+      Serial.print("codec must be 2400, 1600 or 1200\r\n");
+      return;
+    }
+    if (!voice::setMode((int)v)) {
+      Serial.print("can't change the codec now (talking, or no audio on this board)\r\n");
+      return;
+    }
+    g_settings.voiceBitrate = (uint16_t)v;
   } else if (!strcasecmp(key, "time")) {
     TimeMode m;
     if (!parseTimeMode(val, m)) {

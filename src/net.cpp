@@ -1,4 +1,5 @@
 #include "net.h"
+#include "voice.h"
 #include "config.h"
 #include "packet.h"
 #include "radio.h"
@@ -353,6 +354,9 @@ static void managerAllocate(uint32_t permId, const char* name) {
 
 static void managerReclaim() {
   bool changed = false;
+  // Nodes stay quiet while someone talks, so voice doesn't count as silence.
+  if (voice::activeRecently())
+    for (auto& e : s_dir) e.lastHeardFrame = s_frameCount;
   for (auto& e : s_dir) {
     if (!e.active || e.addr == s_sch.myAddr) continue;
     if (s_frameCount - e.lastHeardFrame > SILENT_FRAMES) {
