@@ -26,6 +26,7 @@ static hw_timer_t* s_timer = nullptr;
 static volatile uint32_t s_underruns = 0;
 
 static bool s_ok = false;
+static TaskHandle_t s_task = nullptr;
 static bool s_started = false;             // begin() ran (skipped in safe mode)
 static volatile bool s_micRight = false;
 static volatile Loop s_loop = Loop::Off;
@@ -190,8 +191,10 @@ void begin() {
 #endif
 
   // Core 1 with the main loop; the radio task owns core 0.
-  // Codec2 needs a deep stack for encode/decode.
-  xTaskCreatePinnedToCore(audioTask, "audio", 24576, nullptr, 2, nullptr, 1);
+  // Codec2 keeps big arrays on the stack: about 23 KB to encode (analyse_one_frame ->
+  // nlp) and 25 KB to decode with the post filter (measured with -fstack-usage).
+  // 64 KB leaves plenty of margin; the S3 has the RAM.
+  xTaskCreatePinnedToCore(audioTask, "audio", 65536, nullptr, 2, &s_task, 1);
   s_ok = true;
 }
 
@@ -247,6 +250,8 @@ void printStatus(Print& out) {
   out.printf("           level %.1f dBFS rms, %.1f peak; loop %s, gain %d dB, tone %s; blocks %lu, read errors %lu, underruns %lu\r\n",
              (float)s_rmsDb, (float)s_peakDb, loopName[(int)s_loop], s_gainDb, s_tone ? "on" : "off",
              (unsigned long)s_blocks, (unsigned long)s_micErrors, (unsigned long)s_underruns);
+  if (s_task) out.printf("           audio task stack: %u of 65536 bytes never used\r\n",
+                         (unsigned)uxTaskGetStackHighWaterMark(s_task));
 }
 
 }  // namespace audio
