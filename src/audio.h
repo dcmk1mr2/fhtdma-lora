@@ -7,7 +7,8 @@
 // carry audio yet. Test modes check the hardware on the bench.
 namespace audio {
 
-enum class Loop : uint8_t { Off, On, Ptt };
+// Codec: while PTT is held, mic -> Codec2 encode -> decode -> speaker, no radio.
+enum class Loop : uint8_t { Off, On, Ptt, Codec };
 
 void begin();
 void loop();                 // PTT debounce and meter output (main loop)
@@ -19,6 +20,8 @@ void setLoopback(Loop mode); // mic -> speaker: off, always, or only while PTT i
 void setTone(bool on);       // 1 kHz test tone to the speaker
 void setMeter(bool on);      // print mic level twice a second
 bool setMicRight(bool right);// swap I2S channel if the mic reads silence
+void setMicGainDb(int db);   // mic gain before the meter, loopback and Codec2, -10..+30 dB
+bool codecLoop();            // Loop::Codec selected
 void setGainDb(int db);      // output gain for tone and loopback, -40..+30 dB
 
 void printStatus(Print& out);

@@ -29,6 +29,7 @@ struct Settings {
   int8_t gpsTx;           // ESP32 pin that drives GPS RX, -1 = not wired
   int8_t gpsPps;          // GPS PPS input, -1 = not wired
   int8_t audioGainDb;     // audio output gain, -40..+30 dB
+  int8_t micGainDb;       // mic gain, -10..+30 dB
   bool voiceOn;           // PTT sends Codec2 voice
   uint16_t voiceBitrate;  // Codec2 mode: 2400, 1600 or 1200
 };

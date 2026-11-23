@@ -37,6 +37,8 @@ static volatile Loop s_loop = Loop::Off;
 static volatile bool s_tone = false;
 static volatile int32_t s_gainQ8 = 256;    // output gain, Q8 (256 = 0 dB); set from settings in begin()
 static int s_gainDb = 0;
+static volatile int32_t s_micQ8 = 1024;    // mic gain, Q8 (1024 = +12 dB)
+static int s_micDb = 12;
 static bool s_meter = false;
 static uint32_t s_meterMs = 0;
 
@@ -132,7 +134,7 @@ static void audioTask(void*) {
       int32_t v = raw[2 * i + slot] >> MIC_SHIFT;
       dc += ((v << 8) - dc) >> 9;          // slow high-pass, ~2.5 Hz corner
       v -= dc >> 8;
-      pcm[i] = sat16(v);
+      pcm[i] = sat16((v * s_micQ8) >> 8);
       sumSq += (double)pcm[i] * pcm[i];
       int a = pcm[i] < 0 ? -pcm[i] : pcm[i];
       if (a > peak) peak = a;
@@ -183,6 +185,7 @@ void begin() {
   s_pttDown = s_pttStable;
   s_pttChangeMs = millis();
   setGainDb(g_settings.audioGainDb);
+  setMicGainDb(g_settings.micGainDb);
 
 #if !AUDIO_OUT_I2S
   sigmaDeltaSetup(PIN_AUDIO_OUT, SD_CHANNEL, 312500);
@@ -242,13 +245,18 @@ bool setMicRight(bool right) {
   s_micRight = right;
   return s_ok;
 }
+void setMicGainDb(int db) {
+  s_micDb = db;
+  s_micQ8 = (int32_t)(256.0f * powf(10.0f, db / 20.0f) + 0.5f);
+}
+bool codecLoop() { return s_loop == Loop::Codec; }
 void setGainDb(int db) {
   s_gainDb = db;
   s_gainQ8 = (int32_t)(256.0f * powf(10.0f, db / 20.0f) + 0.5f);
 }
 
 void printStatus(Print& out) {
-  static const char* loopName[] = {"off", "on", "ptt"};
+  static const char* loopName[] = {"off", "on", "ptt", "codec"};
   out.printf("Audio:     mic %s (SCK %d, WS %d, SD %d, %s channel), PTT GPIO%d %s\r\n",
              s_ok ? "running" : "FAILED", PIN_MIC_SCK, PIN_MIC_WS, PIN_MIC_SD, s_micRight ? "right" : "left",
              PIN_PTT, s_pttDown ? "DOWN" : "up");
@@ -257,6 +265,7 @@ void printStatus(Print& out) {
 #else
   out.printf("           out: sigma-delta on GPIO%d (RC low-pass)\r\n", PIN_AUDIO_OUT);
 #endif
+  out.printf("           mic gain %+d dB (aim for speech peaks around -12 dBFS)\r\n", s_micDb);
   out.printf("           level %.1f dBFS rms, %.1f peak; loop %s, gain %d dB, tone %s; blocks %lu, read errors %lu, underruns %lu\r\n",
              (float)s_rmsDb, (float)s_peakDb, loopName[(int)s_loop], s_gainDb, s_tone ? "on" : "off",
              (unsigned long)s_blocks, (unsigned long)s_micErrors, (unsigned long)s_underruns);
@@ -278,6 +287,8 @@ void setTone(bool) {}
 void setMeter(bool) {}
 bool setMicRight(bool) { return false; }
 void setGainDb(int) {}
+void setMicGainDb(int) {}
+bool codecLoop() { return false; }
 void printStatus(Print& out) { out.print("Audio:     not available on this board\r\n"); }
 }  // namespace audio
 

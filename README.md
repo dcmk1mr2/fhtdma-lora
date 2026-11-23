@@ -14,6 +14,8 @@ https://claude.ai/artifact/E8x5DL42hH3cXBXfDEWVhU
 
 ## Status
 
+**0.6.3:** voice quality checks: `audio micgain <dB>` (default +12 dB, saved) and `audio loop codec`, which runs the mic through Codec2 encode and decode locally with no radio while PTT is held.
+
 **0.6.2:** PTT on GPIO20: release the S3 native-USB pad so the button press reaches the GPIO input.
 
 **0.6.1:** audio task stack raised to 64 KB (Codec2 overflowed 24 KB); `audio` shows unused stack.
@@ -203,6 +205,8 @@ stats [reset]        per-node packet counts, loss, RSSI, time error
 who                  nodes on the net: name, address, slot, role, last heard
 audio                mic level, PTT state, audio test status
 audio loop on|off|ptt  mic to speaker: always, off, or only while PTT is held
+audio loop codec       while PTT is held: mic -> Codec2 -> speaker, no radio
+audio micgain <dB>     mic gain -10..30 dB (default 12); aim for speech peaks near -12 dBFS
 audio tone on|off    1 kHz test tone on the audio output
 audio gain <dB>      output level, -40 to 30 dB (default -12, saved)
 audio meter on|off   print the mic level twice a second

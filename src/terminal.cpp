@@ -52,11 +52,12 @@ static void help() {
       "  stats [reset]        per-node packet counts, loss, RSSI, time error\r\n"
       "  who                  nodes on the net: name, address, slot, last heard\r\n"
       "  audio                mic level, PTT and audio test status\r\n"
-      "  audio loop on|off|ptt  mic to speaker: always, off, or while PTT is held\r\n"
+      "  audio loop on|off|ptt|codec  mic to speaker: always, off, while PTT held, or through Codec2\r\n"
       "  audio tone on|off    1 kHz test tone on the audio output\r\n"
       "  audio meter on|off   print the mic level twice a second\r\n"
       "  audio mic left|right I2S channel for the mic (L/R pin to GND = left)\r\n"
       "  audio gain <dB>      output level for tone and loopback, -40 to 30 (saved)\r\n"
+      "  audio micgain <dB>   mic gain before Codec2, -10 to 30 (saved, default 12)\r\n"
       "  set                  show all settings\r\n"
       "  set call <CALL>      net call sign (all nodes in a net must match)\r\n"
       "  set name <name>      display name, 1-8 characters, no spaces (unique on the net)\r\n"
@@ -305,8 +306,10 @@ static void cmdAudio(const char* what, const char* val, bool extra) {
   bool off = val && !strcasecmp(val, "off");
   if (extra) {
     Serial.print("too many words. Type help.\r\n");
-  } else if (!strcasecmp(what, "loop") && (on || off || (val && !strcasecmp(val, "ptt")))) {
-    audio::setLoopback(on ? audio::Loop::On : off ? audio::Loop::Off : audio::Loop::Ptt);
+  } else if (!strcasecmp(what, "loop") && (on || off || (val && (!strcasecmp(val, "ptt") || !strcasecmp(val, "codec"))))) {
+    audio::setLoopback(on ? audio::Loop::On : off ? audio::Loop::Off
+                       : !strcasecmp(val, "ptt") ? audio::Loop::Ptt : audio::Loop::Codec);
+    if (!strcasecmp(val, "codec")) Serial.print("Hold PTT and talk: you hear yourself through Codec2 (no radio). PTT won't transmit until 'audio loop off'.\r\n");
     if (!off) audio::setTone(false);
     Serial.printf("Audio loopback %s.\r\n", val);
   } else if (!strcasecmp(what, "tone") && (on || off)) {
@@ -325,11 +328,21 @@ static void cmdAudio(const char* what, const char* val, bool extra) {
       settingsSave();
       Serial.printf("Audio gain %ld dB (saved).\r\n", db);
     }
+  } else if (!strcasecmp(what, "micgain") && val) {
+    long db;
+    if (!parseNum(val, -10, 30, db)) {
+      Serial.print("mic gain must be -10 to 30 dB\r\n");
+    } else {
+      audio::setMicGainDb((int)db);
+      g_settings.micGainDb = (int8_t)db;
+      settingsSave();
+      Serial.printf("Mic gain %ld dB (saved).\r\n", db);
+    }
   } else if (!strcasecmp(what, "mic") && val && (!strcasecmp(val, "left") || !strcasecmp(val, "right"))) {
     bool ok = audio::setMicRight(!strcasecmp(val, "right"));
     Serial.printf(ok ? "Mic reads the %s channel.\r\n" : "Mic restart failed (%s).\r\n", val);
   } else {
-    Serial.print("usage: audio | audio loop on|off|ptt | audio tone on|off | audio meter on|off | audio mic left|right | audio gain <-40..30>\r\n");
+    Serial.print("usage: audio | audio loop on|off|ptt|codec | audio micgain <dB> | audio tone on|off | audio meter on|off | audio mic left|right | audio gain <-40..30>\r\n");
   }
 }
 

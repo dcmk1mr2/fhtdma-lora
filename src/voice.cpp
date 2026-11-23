@@ -116,7 +116,7 @@ bool setMode(int bitrate) {
 void loop() {
   if (!s_enc || !audio::available()) return;
   uint32_t now = millis();
-  bool ptt = audio::pttDown() && g_settings.voiceOn;
+  bool ptt = audio::pttDown() && g_settings.voiceOn && !audio::codecLoop();
   if (ptt && !s_wantTx && !radio::hopping()) {
     static uint32_t lastWarn = 0;
     if (now - lastWarn > 5000) {
@@ -157,7 +157,12 @@ void loop() {
 }
 
 void onMicBlock(const int16_t* pcm, int n) {
-  if (!s_tx || !s_wantTx || !s_enc) return;
+  // Codec loopback test: encode while PTT is held and feed our own decoder.
+  bool codecLoop = audio::codecLoop() && audio::pttDown();
+  if (!s_enc || (!codecLoop && (!s_tx || !s_wantTx))) {
+    s_encFill = 0;
+    return;
+  }
   for (int i = 0; i < n; i++) {
     s_encBuf[s_encFill++] = pcm[i];
     if (s_encFill >= s_spf) {
@@ -166,6 +171,13 @@ void onMicBlock(const int16_t* pcm, int n) {
       codec2_encode(s_enc, bits, s_encBuf);
       s_encUs = micros() - t0;
       s_encFill = 0;
+      if (codecLoop) {
+        portENTER_CRITICAL(&s_mux);
+        s_rxMode = s_mode;
+        ringPush(s_rxq, RXQ, s_rxHead, s_rxLen, bits, s_bpf, s_bpf);
+        portEXIT_CRITICAL(&s_mux);
+        continue;
+      }
       portENTER_CRITICAL(&s_mux);
       // Keep at most three slots of audio queued.
       int cap = 3 * framesPerSlot(s_spf) * s_bpf;

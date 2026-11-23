@@ -24,6 +24,7 @@ static void defaults() {
   g_settings.gpsTx = PIN_GPS_TX;
   g_settings.gpsPps = PIN_GPS_PPS;
   g_settings.audioGainDb = -12;
+  g_settings.micGainDb = 12;
   g_settings.voiceOn = true;
   g_settings.voiceBitrate = 2400;
 }
@@ -81,6 +82,7 @@ void settingsLoad() {
   g_settings.gpsTx = prefs.getChar("gtx", g_settings.gpsTx);
   g_settings.gpsPps = prefs.getChar("gpps", g_settings.gpsPps);
   g_settings.audioGainDb = prefs.getChar("again", g_settings.audioGainDb);
+  g_settings.micGainDb = prefs.getChar("mgain", g_settings.micGainDb);
   g_settings.voiceOn = prefs.getBool("voice", g_settings.voiceOn);
   g_settings.voiceBitrate = prefs.getUShort("codec", g_settings.voiceBitrate);
   prefs.end();
@@ -95,6 +97,7 @@ void settingsLoad() {
   if (g_settings.listenSec < 2 || g_settings.listenSec > 600) g_settings.listenSec = 20;
   if (g_settings.voiceBitrate != 2400 && g_settings.voiceBitrate != 1600 && g_settings.voiceBitrate != 1200)
     g_settings.voiceBitrate = 2400;
+  if (g_settings.micGainDb < -10 || g_settings.micGainDb > 30) g_settings.micGainDb = 12;
   if (g_settings.audioGainDb < -40 || g_settings.audioGainDb > 30) g_settings.audioGainDb = -12;
   // A saved GPS pin that now clashes with a board function falls back to the default.
   if (g_settings.gpsRx < 0 || pinUse(g_settings.gpsRx)) g_settings.gpsRx = PIN_GPS_RX;
@@ -120,6 +123,7 @@ void settingsSave() {
   prefs.putChar("gtx", g_settings.gpsTx);
   prefs.putChar("gpps", g_settings.gpsPps);
   prefs.putChar("again", g_settings.audioGainDb);
+  prefs.putChar("mgain", g_settings.micGainDb);
   prefs.putBool("voice", g_settings.voiceOn);
   prefs.putUShort("codec", g_settings.voiceBitrate);
   prefs.end();
