@@ -14,6 +14,8 @@ https://claude.ai/artifact/E8x5DL42hH3cXBXfDEWVhU
 
 ## Status
 
+**0.6.2:** PTT on GPIO20: release the S3 native-USB pad so the button press reaches the GPIO input.
+
 **0.6.1:** audio task stack raised to 64 KB (Codec2 overflowed 24 KB); `audio` shows unused stack.
 
 **0.6.0: Codec2 push-to-talk voice.** Hold PTT and talk; every node in the net plays

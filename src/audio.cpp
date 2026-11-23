@@ -5,6 +5,10 @@
 
 #if HAS_AUDIO
 #include <driver/i2s.h>
+#if defined(BOARD_HELTEC_V3)
+#include <soc/soc.h>
+#include <soc/usb_serial_jtag_reg.h>
+#endif
 #include <math.h>
 
 namespace audio {
@@ -167,6 +171,12 @@ static void audioTask(void*) {
 }
 
 void begin() {
+#if defined(BOARD_HELTEC_V3)
+  // GPIO19/20 are the S3's native USB pins. The Heltec V3 talks USB through its
+  // CP2102 instead, but the USB PHY still owns these pads after boot, which can
+  // hide a button press from the GPIO input. Hand the pads back to the GPIO matrix.
+  if (PIN_PTT == 19 || PIN_PTT == 20) CLEAR_PERI_REG_MASK(USB_SERIAL_JTAG_CONF0_REG, USB_SERIAL_JTAG_USB_PAD_ENABLE);
+#endif
   pinMode(PIN_PTT, INPUT_PULLUP);
   s_started = true;
   s_pttRaw = s_pttStable = (digitalRead(PIN_PTT) == LOW);
