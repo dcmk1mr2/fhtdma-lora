@@ -117,6 +117,29 @@ static void onRx(const uint8_t* data, size_t len, const radio::RxInfo& info) {
     }
     case PKT_BEACON: {
       n.beacons++;
+      if (g_settings.timeMode == TimeMode::BenchMaster) {
+        // Two bench masters split the bench into two clocks that never line up.
+        // The lower address stays master; the higher one drops to bench (saved).
+        uint8_t me = net::myAddr();
+        if (h.src < me) {
+          g_settings.timeMode = TimeMode::Bench;
+          settingsSave();
+          timebase::reset();
+          terminal::printAsync("! Another bench master (node %u, lower ID) heard: this node is now time bench (saved)", h.src);
+          net::restart();
+          // fall through: sync to this beacon right away
+        } else {
+          static uint32_t lastWarn = 0;
+          uint32_t now = millis();
+          if (lastWarn == 0 || now - lastWarn > 10000) {
+            lastWarn = now ? now : 1;
+            if (h.src == me)
+              terminal::printAsync("! Another bench master is using my ID %u. Give each node its own ID", me);
+            else
+              terminal::printAsync("! Another bench master (node %u) heard; it will switch to bench", h.src);
+          }
+        }
+      }
       if (plen >= 8 && g_settings.timeMode == TimeMode::Bench) {
         bool first = !timebase::synced();
         timebase::syncFromBeacon(getI64(p), info.rxDoneLocalUs);
@@ -143,7 +166,7 @@ static size_t buildPacket(uint8_t type, uint16_t seq, const uint8_t* payload, si
 }
 
 static size_t buildTest(uint8_t* out, size_t max, int& stampOffset) {
-  // Full 48-byte packet so airtime matches real traffic.
+  // Full 48-byte text-size packet so airtime matches real text traffic.
   uint8_t payload[PKT_TEXT_MAX];
   putI64(payload, 0);
   for (size_t i = 8; i < sizeof(payload); i++) payload[i] = (uint8_t)i;
@@ -269,8 +292,8 @@ void printStatus(Print& out) {
   }
   net::printStatus(out);
   out.printf("Power:     %d dBm\r\n", g_settings.powerDbm);
-  out.printf("Radio:     SF%d BW%.0f kHz CR4/%d, preamble %d, 48-byte airtime %.1f ms, TX latency %ld us\r\n",
-             LORA_SF, LORA_BW_KHZ, LORA_CR, LORA_PREAMBLE, radio::airtimeUs(PKT_MAX_LEN) / 1000.0f,
+  out.printf("Radio:     SF%d BW%.0f kHz CR4/%d, preamble %d, %d-byte airtime %.1f ms, TX latency %ld us\r\n",
+             LORA_SF, LORA_BW_KHZ, LORA_CR, LORA_PREAMBLE, PKT_MAX_LEN, radio::airtimeUs(PKT_MAX_LEN) / 1000.0f,
              (long)radio::txLatencyUs());
   out.printf("Time mode: %s, %s", timeModeName(g_settings.timeMode), timebase::synced() ? "synced" : "NOT synced");
   if (g_settings.timeMode == TimeMode::Bench || g_settings.timeMode == TimeMode::Gps) {

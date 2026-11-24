@@ -14,6 +14,8 @@ https://claude.ai/artifact/E8x5DL42hH3cXBXfDEWVhU
 
 ## Status
 
+**0.7.2:** only one bench master: a bench master that hears another master with a lower ID switches itself to `time bench` (saved) and prints a notice; the lower ID keeps going and prints a warning. The `status` airtime label now shows the real largest packet (70 bytes).
+
 **0.7.1:** slot timing pulse on GPIO19: the radio releases the S3's native USB pads (GPIO19/20) at startup, not only when audio starts, and the pulse is at least 100 us wide.
 
 **0.7.0:** slot time T is now 140 ms (was 120) and voice packets can carry 64 bytes (70-byte packets, 126 ms on air), so Codec2 3200 works over the air: 8 frames (160 ms of audio) per 140 ms slot. Text messages are still 42 characters. **All nodes must run 0.7.0**, because older firmware uses 120 ms slots and won't line up.
