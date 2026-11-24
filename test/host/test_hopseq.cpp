@@ -29,8 +29,9 @@ int main() {
     memcpy(p0, p1, 127);
   }
 
-  // Dwell: at most 0.4 s on any channel in any 20 s window (T = 120 ms -> 166 slots).
-  const int W = 166;
+  // Dwell: at most 0.4 s on any channel in any 20 s window (T = 140 ms -> 143 slots),
+  // counting a full 70-byte packet (126.2 ms on air) for every hit.
+  const int W = 143;
   const int64_t S = 1000000, base = 13000000000LL;  // realistic slot numbers
   std::vector<uint8_t> ch(S);
   for (int64_t s = 0; s < S; s++) ch[s] = hopseq::channel(base + s);
@@ -41,7 +42,7 @@ int main() {
     if (s >= W) count[ch[s - W]]--;
     for (int c = 0; c < 127; c++) if (count[c] > worst) worst = count[c];
   }
-  CHECK(worst * 120 <= 400, "worst dwell %d slots (%d ms) in 20 s", worst, worst * 120);
+  CHECK(worst * 1262 <= 4000, "worst dwell %d slots (%d ms) in 20 s", worst, worst * 1262 / 10);
   long mn = S, mx = 0;
   for (int c = 0; c < 127; c++) { if (total[c] < mn) mn = total[c]; if (total[c] > mx) mx = total[c]; }
   CHECK(mx - mn <= 2, "unequal channel use %ld..%ld", mn, mx);
@@ -62,7 +63,7 @@ done:
   hopseq::permutation(key, 5, p0);
   CHECK(memcmp(p0, p1, 127) != 0, "call signs collide");
 
-  printf("worst dwell in 20 s: %d ms; channel use %ld..%ld per 1e6 slots\n", worst * 120, mn, mx);
+  printf("worst dwell in 20 s: %d ms; channel use %ld..%ld per 1e6 slots\n", worst * 1262 / 10, mn, mx);
   printf("first 10 channels for W6MRR from slot %lld:", (long long)base);
   for (int i = 0; i < 10; i++) printf(" %d", ch[i]);
   printf("\n%s\n", fails ? "FAILED" : "ALL PASSED");

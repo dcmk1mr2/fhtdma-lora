@@ -13,7 +13,8 @@
 namespace voice {
 
 // Header flags byte: codec mode (high 4 bits) | frame count (low 4 bits). Payload: the
-// frames only, so Codec2 2400 fits 7 frames (140 ms) in a slot. That margin lets the
+// frames only (up to 64 bytes): per 140 ms slot, Codec2 3200 fits 8 frames (160 ms),
+// 2400 fits 10 (200 ms). That margin lets the
 // talker catch up after the slots it has to skip (beacon, bench sync).
 static const int SLOT_MS = SLOT_US / 1000;
 static const uint32_t BUSY_MS = 400;        // floor stays busy this long after the last packet
@@ -60,7 +61,7 @@ static int modeBitrate(int m) {
 static int bitrateMode(int b) {
   return b == 3200 ? CODEC2_MODE_3200 : b == 2400 ? CODEC2_MODE_2400 : b == 1600 ? CODEC2_MODE_1600 : b == 1200 ? CODEC2_MODE_1200 : -1;
 }
-// Codec frames per slot: 120 ms of audio.
+// Codec frames per slot: one slot (T) of audio.
 static int framesPerSlot(int spf) { return SLOT_MS * 8 / spf; }
 
 static void ringPush(uint8_t* q, int cap, int& head, int& len, const uint8_t* d, int n, int frame) {
@@ -117,15 +118,6 @@ void loop() {
   if (!s_enc || !audio::available()) return;
   uint32_t now = millis();
   bool ptt = audio::pttDown() && g_settings.voiceOn && !audio::codecLoop();
-  if (ptt && !s_wantTx && s_mode == CODEC2_MODE_3200) {
-    // 3200 needs 8 bytes per 20 ms: 5 frames (100 ms) per 120 ms slot can't keep up.
-    static uint32_t lastWarn = 0;
-    if (now - lastWarn > 5000) {
-      lastWarn = now;
-      terminal::printAsync("! Codec2 3200 is for audio loop codec only; set codec 2400 to talk on air");
-    }
-    return;
-  }
   if (ptt && !s_wantTx && !radio::hopping()) {
     static uint32_t lastWarn = 0;
     if (now - lastWarn > 5000) {
@@ -208,7 +200,7 @@ bool transmitting() { return s_tx; }
 size_t fillSlot(uint8_t* buf, size_t max) {
   if (!s_tx) return 0;
   static uint16_t seq = 0;
-  uint8_t pl[PKT_TEXT_MAX];
+  uint8_t pl[PKT_PAYLOAD_MAX];
   portENTER_CRITICAL(&s_mux);
   int fps = framesPerSlot(s_spf);
   int bpf = s_bpf;

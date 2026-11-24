@@ -6,7 +6,8 @@
 // beacon slot and the bench sync slot. Everyone else stays quiet, plays the
 // voice, and resumes normal traffic once the talker stops.
 //
-// Codec2 2400 (default): 6 bytes per 20 ms frame, up to 7 frames (140 ms) per slot.
+// Codec2 2400 (default): 6 bytes per 20 ms frame, up to 10 frames per 140 ms slot.
+// Codec2 3200: 8 bytes per 20 ms frame, up to 8 frames (160 ms) per slot.
 namespace voice {
 
 void begin();
@@ -25,7 +26,7 @@ bool floorBusy();                  // someone else is talking: stay off the air
 void onPacket(uint8_t src, uint16_t seq, uint8_t flags, const uint8_t* p, size_t plen);
 
 bool activeRecently();             // voice sent or heard in the last 2 s
-bool setMode(int bitrate);         // 3200 (loopback only), 2400, 1600 or 1200
+bool setMode(int bitrate);         // 3200, 2400, 1600 or 1200
 void printStatus(Print& out);
 
 }  // namespace voice

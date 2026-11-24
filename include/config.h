@@ -106,7 +106,7 @@
 #define CH_DEFAULT     63           // 914.9 MHz: fixed channel with hop off, bench sync channel
 
 // ---- TDMA timing (design doc defaults) ----
-#define SLOT_US        120000       // T: slot time
+#define SLOT_US        140000       // T: slot time (140 ms since 0.7.0, to fit Codec2 3200)
 #define GUARD_US       5000         // G: guard time; TX starts G/2 into the slot
 // Bench time mode only: every SYNC_PERIOD slots all nodes meet on the fixed
 // channel and the bench master sends its time beacon. Not used with GPS.
@@ -114,7 +114,10 @@
 
 // ---- Packet sizes ----
 #define PKT_HEADER_LEN 6
-#define PKT_TEXT_MAX   42
-#define PKT_MAX_LEN    (PKT_HEADER_LEN + PKT_TEXT_MAX)   // 48 bytes
+#define PKT_TEXT_MAX   42           // text messages stay 42 characters (48-byte packets)
+// Largest payload (voice). A 70-byte packet is 126 ms on air at SF7/125 kHz: it fits a
+// 140 ms slot with G = 5 ms, and 3 hits on one channel in 20 s stay under 400 ms.
+#define PKT_PAYLOAD_MAX 64
+#define PKT_MAX_LEN    (PKT_HEADER_LEN + PKT_PAYLOAD_MAX)   // 70 bytes
 
-#define FW_VERSION     "0.6.4-voice"
+#define FW_VERSION     "0.7.0-voice"

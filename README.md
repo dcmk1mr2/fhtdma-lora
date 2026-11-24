@@ -14,6 +14,8 @@ https://claude.ai/artifact/E8x5DL42hH3cXBXfDEWVhU
 
 ## Status
 
+**0.7.0:** slot time T is now 140 ms (was 120) and voice packets can carry 64 bytes (70-byte packets, 126 ms on air), so Codec2 3200 works over the air: 8 frames (160 ms of audio) per 140 ms slot. Text messages are still 42 characters. **All nodes must run 0.7.0**, because older firmware uses 120 ms slots and won't line up.
+
 **0.6.4:** `set codec 3200` for the `audio loop codec` test only (too fast for a slot; PTT on air refuses it).
 
 **0.6.3:** voice quality checks: `audio micgain <dB>` (default +12 dB, saved) and `audio loop codec`, which runs the mic through Codec2 encode and decode locally with no radio while PTT is held.
@@ -77,7 +79,7 @@ How a net forms (design doc section 5):
 
 `set netmode static` brings back the step 2 behaviour (fixed slot = `set id`, no manager).
 
-Step 2 features still apply: 120 ms slots with 5 ms guard (TX starts 2.5 ms into the slot), callsign-seeded hopping
+Step 2 features still apply: 140 ms slots (120 ms before 0.7.0) with 5 ms guard (TX starts 2.5 ms into the slot), callsign-seeded hopping
 over 127 channels, radio in its own task on core 0, TX latency self-calibration,
 OLED status screen, and `set hop off` for a fixed channel with no slots.
 
@@ -178,18 +180,22 @@ Everyone else stays off the air while voice is heard and plays it through the
 MAX98357A. When PTT is released the talker flushes what's queued and normal traffic
 resumes. If someone is already talking, PTT prints "Channel busy" and waits.
 
-| Codec2 | Frame          | Per slot (120 ms)        | Notes |
-|--------|----------------|--------------------------|-------|
-| 2400   | 6 bytes, 20 ms | up to 7 frames, 42 bytes | default, best quality; in bench time mode about 2% of frames are dropped (the sync slot) |
-| 1600   | 8 bytes, 40 ms | up to 5 frames, 40 bytes | no drops in any mode |
-| 1200   | 6 bytes, 40 ms | up to 7 frames, 42 bytes | no drops, lower quality |
+| Codec2 | Frame          | Per slot (140 ms)         | Notes |
+|--------|----------------|---------------------------|-------|
+| 3200   | 8 bytes, 20 ms | up to 8 frames, 64 bytes  | best quality; 160 ms of audio per slot, so it can skip about 1 slot in 8 |
+| 2400   | 6 bytes, 20 ms | up to 10 frames, 60 bytes | default |
+| 1600   | 8 bytes, 40 ms | up to 8 frames, 64 bytes  | |
+| 1200   | 6 bytes, 40 ms | up to 10 frames, 60 bytes | lower quality |
+
+At 3200, managed mode with a very small net (N = 4) skips every 4th slot for the beacon,
+which is more than 3200 can make up; use 2400 there or let N grow.
 
 Codec mode and frame count ride in the packet header's flags byte, so listeners
-follow whatever the talker sends. Playback starts with about 180 ms buffered, so
+follow whatever the talker sends. Playback starts with about 210 ms buffered, so
 mouth-to-ear delay is roughly 300-400 ms. The net manager doesn't free silent nodes'
 slots while voice is active. Voice needs hop on and time sync (bench or gps).
 
-Commands: `set voice on|off`, `set codec 2400|1600|1200` (3200 for `audio loop codec` only), and `status` shows voice
+Commands: `set voice on|off`, `set codec 3200|2400|1600|1200`, and `status` shows voice
 counters (packets, lost, encode/decode time). `audio gain` sets playback volume.
 
 Codec2 comes from https://github.com/meshtastic/ESP32_Codec2 (pinned in platformio.ini,
@@ -227,7 +233,7 @@ set interval <ms>    test ping interval when hop is off
 set time <mode>      local | bench | benchmaster | gps
 set gps <rx> [tx] [pps]  GPS pins on the ESP32 (reboot to apply)
 set voice on|off     PTT sends Codec2 voice (default on)
-set codec <rate>     Codec2 2400 (default), 1600 or 1200; 3200 = loopback test only
+set codec <rate>     Codec2 3200, 2400 (default), 1600 or 1200
 pinscan              find which GPIO a signal (e.g. GPS TX) is wired to
 reboot
 ```

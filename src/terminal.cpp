@@ -72,7 +72,7 @@ static void help() {
       "  set time <mode>      local | bench | benchmaster | gps\r\n"
       "  set gps <rx> [tx] [pps]  GPS pins (rx = pin wired to GPS TX); reboot to apply\r\n"
       "  set voice on|off     PTT sends Codec2 voice to the net\r\n"
-      "  set codec <rate>     Codec2 bit rate: 2400 (default), 1600, 1200; 3200 = loopback test only\r\n"
+      "  set codec <rate>     Codec2 bit rate: 3200, 2400 (default), 1600 or 1200\r\n"
       "  pinscan              find which GPIO a signal (e.g. GPS TX) is wired to\r\n"
       "  reboot               restart the board\r\n"
       "Settings are saved automatically.\r\n");

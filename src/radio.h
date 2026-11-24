@@ -3,7 +3,7 @@
 
 // Radio and TDMA scheduler. A dedicated task on core 0 owns the radio.
 //
-// Hop on (and time synced): every T = 120 ms slot the radio retunes to the
+// Hop on (and time synced): every T = 140 ms slot the radio retunes to the
 // hop channel for that slot and listens. In slots this node owns
 // (slot mod N == node id) it transmits G/2 = 5 ms after slot start: first a
 // queued packet, otherwise whatever the slot filler supplies (test pings).

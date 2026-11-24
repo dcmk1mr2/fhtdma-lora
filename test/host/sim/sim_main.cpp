@@ -37,15 +37,17 @@ static const char* names[] = {"Alpha", "Bravo", "Charlie", "Delta", "Echo", "Fox
 static const int NN = 12;
 static bool alive[NN];
 static int group[NN];  // nodes only hear others in the same group
-static const int64_t T = 120000;
+static const int64_t T = SLOT_US;
 static int fails = 0;
 static uint32_t collisions = 0;
 
 #define CHECK(c, ...) do { if (!(c)) { fails++; printf("FAIL: " __VA_ARGS__); printf("\n"); } } while (0)
 enum { OFF, STATIC, LISTEN, JOINING, MEMBER, MANAGER };
 
+// Scenario times are written for 120 ms slots; scale them so each phase gets the same
+// number of slots whatever SLOT_US is.
 static void runUntil(double sec) {
-  int64_t end = (int64_t)(sec * 1e6);
+  int64_t end = (int64_t)(sec * 1e6 * (T / 120000.0));
   while (g_simTimeUs < end) {
     int64_t s = g_simTimeUs / T;
     // slot start (+1 ms): every node runs its main loop, then plans the slot
@@ -162,3 +164,6 @@ int main() {
   printf("%s\n", fails ? "FAILED" : "ALL PASSED");
   return fails ? 1 : 0;
 }
+
+// net.cpp asks whether voice is active (it freezes slot reclaim); no voice in the sim.
+namespace voice { bool activeRecently() { return false; } }
