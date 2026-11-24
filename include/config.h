@@ -120,4 +120,4 @@
 #define PKT_PAYLOAD_MAX 64
 #define PKT_MAX_LEN    (PKT_HEADER_LEN + PKT_PAYLOAD_MAX)   // 70 bytes
 
-#define FW_VERSION     "0.7.0-voice"
+#define FW_VERSION     "0.7.1-voice"

@@ -9,6 +9,10 @@
 #include <RadioLib.h>
 #include <SPI.h>
 #include <esp_timer.h>
+#if defined(BOARD_HELTEC_V3)
+#include <soc/soc.h>
+#include <soc/usb_serial_jtag_reg.h>
+#endif
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
@@ -231,6 +235,7 @@ static void runSlotted() {
     s_hopping = true;
     s_curSlot = slot;
     digitalWrite(PIN_SLOT_DEBUG, HIGH);
+    int64_t pulseStart = esp_timer_get_time();
     if (s_state == State::Tx) {  // previous TX ran past the slot end
       s_counters.txOverrun++;
       digitalWrite(PIN_LED, LOW);
@@ -239,6 +244,7 @@ static void runSlotted() {
                      (slot % SYNC_PERIOD == 0);
     tune(benchSync ? g_settings.channel : hopseq::channel(slot));
     startRx();
+    while (esp_timer_get_time() - pulseStart < 100) {}  // at least 100 us wide, easy to catch
     digitalWrite(PIN_SLOT_DEBUG, LOW);
 
     havePending = false;
@@ -310,6 +316,14 @@ static void radioTask(void*) {
 // Public API (main loop side)
 
 bool begin() {
+#if defined(BOARD_HELTEC_V3)
+  // GPIO19/20 are the S3's native USB pads (the Heltec V3 uses its CP2102 for USB).
+  // The USB PHY keeps them after boot, so the slot pulse never reached GPIO19.
+  // Hand both pads to the GPIO matrix (this used to happen only in audio::begin,
+  // which safe mode skips).
+  if (PIN_SLOT_DEBUG == 19 || PIN_SLOT_DEBUG == 20)
+    CLEAR_PERI_REG_MASK(USB_SERIAL_JTAG_CONF0_REG, USB_SERIAL_JTAG_USB_PAD_ENABLE);
+#endif
   pinMode(PIN_SLOT_DEBUG, OUTPUT);
   digitalWrite(PIN_SLOT_DEBUG, LOW);
   SPI.begin(PIN_LORA_SCK, PIN_LORA_MISO, PIN_LORA_MOSI, PIN_LORA_CS);
