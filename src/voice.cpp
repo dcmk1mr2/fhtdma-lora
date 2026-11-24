@@ -55,10 +55,10 @@ static volatile uint32_t s_pktTx = 0, s_pktRx = 0, s_lost = 0, s_framesDropped =
 
 static int bytesPerFrame(struct CODEC2* c) { return (codec2_bits_per_frame(c) + 7) / 8; }
 static int modeBitrate(int m) {
-  return m == CODEC2_MODE_2400 ? 2400 : m == CODEC2_MODE_1600 ? 1600 : m == CODEC2_MODE_1200 ? 1200 : 0;
+  return m == CODEC2_MODE_3200 ? 3200 : m == CODEC2_MODE_2400 ? 2400 : m == CODEC2_MODE_1600 ? 1600 : m == CODEC2_MODE_1200 ? 1200 : 0;
 }
 static int bitrateMode(int b) {
-  return b == 2400 ? CODEC2_MODE_2400 : b == 1600 ? CODEC2_MODE_1600 : b == 1200 ? CODEC2_MODE_1200 : -1;
+  return b == 3200 ? CODEC2_MODE_3200 : b == 2400 ? CODEC2_MODE_2400 : b == 1600 ? CODEC2_MODE_1600 : b == 1200 ? CODEC2_MODE_1200 : -1;
 }
 // Codec frames per slot: 120 ms of audio.
 static int framesPerSlot(int spf) { return SLOT_MS * 8 / spf; }
@@ -117,6 +117,15 @@ void loop() {
   if (!s_enc || !audio::available()) return;
   uint32_t now = millis();
   bool ptt = audio::pttDown() && g_settings.voiceOn && !audio::codecLoop();
+  if (ptt && !s_wantTx && s_mode == CODEC2_MODE_3200) {
+    // 3200 needs 8 bytes per 20 ms: 5 frames (100 ms) per 120 ms slot can't keep up.
+    static uint32_t lastWarn = 0;
+    if (now - lastWarn > 5000) {
+      lastWarn = now;
+      terminal::printAsync("! Codec2 3200 is for audio loop codec only; set codec 2400 to talk on air");
+    }
+    return;
+  }
   if (ptt && !s_wantTx && !radio::hopping()) {
     static uint32_t lastWarn = 0;
     if (now - lastWarn > 5000) {
@@ -263,7 +272,7 @@ void onPacket(uint8_t src, uint16_t seq, uint8_t flags, const uint8_t* p, size_t
     s_rxMode = mode;
     s_rxLen = 0;  // decoder switches on the next frame
   }
-  int bpf = (mode == CODEC2_MODE_1600) ? 8 : 6;
+  int bpf = (mode == CODEC2_MODE_1600 || mode == CODEC2_MODE_3200) ? 8 : 6;
   if ((int)plen >= n * bpf) ringPush(s_rxq, RXQ, s_rxHead, s_rxLen, p, n * bpf, bpf);
   portEXIT_CRITICAL(&s_mux);
 }

@@ -117,4 +117,4 @@
 #define PKT_TEXT_MAX   42
 #define PKT_MAX_LEN    (PKT_HEADER_LEN + PKT_TEXT_MAX)   // 48 bytes
 
-#define FW_VERSION     "0.6.3-voice"
+#define FW_VERSION     "0.6.4-voice"

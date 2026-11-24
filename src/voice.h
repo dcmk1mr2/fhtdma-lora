@@ -25,7 +25,7 @@ bool floorBusy();                  // someone else is talking: stay off the air
 void onPacket(uint8_t src, uint16_t seq, uint8_t flags, const uint8_t* p, size_t plen);
 
 bool activeRecently();             // voice sent or heard in the last 2 s
-bool setMode(int bitrate);         // 2400, 1600 or 1200
+bool setMode(int bitrate);         // 3200 (loopback only), 2400, 1600 or 1200
 void printStatus(Print& out);
 
 }  // namespace voice

@@ -72,7 +72,7 @@ static void help() {
       "  set time <mode>      local | bench | benchmaster | gps\r\n"
       "  set gps <rx> [tx] [pps]  GPS pins (rx = pin wired to GPS TX); reboot to apply\r\n"
       "  set voice on|off     PTT sends Codec2 voice to the net\r\n"
-      "  set codec <rate>     Codec2 bit rate: 2400 (default), 1600 or 1200\r\n"
+      "  set codec <rate>     Codec2 bit rate: 2400 (default), 1600, 1200; 3200 = loopback test only\r\n"
       "  pinscan              find which GPIO a signal (e.g. GPS TX) is wired to\r\n"
       "  reboot               restart the board\r\n"
       "Settings are saved automatically.\r\n");
@@ -266,8 +266,8 @@ static void cmdSet(char* key, char* val, bool extra) {
     }
   } else if (!strcasecmp(key, "codec")) {
     long v;
-    if (!parseNum(val, 1200, 2400, v) || (v != 2400 && v != 1600 && v != 1200)) {
-      Serial.print("codec must be 2400, 1600 or 1200\r\n");
+    if (!parseNum(val, 1200, 3200, v) || (v != 3200 && v != 2400 && v != 1600 && v != 1200)) {
+      Serial.print("codec must be 3200, 2400, 1600 or 1200\r\n");
       return;
     }
     if (!voice::setMode((int)v)) {

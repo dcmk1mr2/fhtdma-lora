@@ -95,7 +95,7 @@ void settingsLoad() {
   if (g_settings.slots < 2 || g_settings.slots > 256) g_settings.slots = 8;
   if ((uint8_t)g_settings.netMode > 1) g_settings.netMode = NetMode::Managed;
   if (g_settings.listenSec < 2 || g_settings.listenSec > 600) g_settings.listenSec = 20;
-  if (g_settings.voiceBitrate != 2400 && g_settings.voiceBitrate != 1600 && g_settings.voiceBitrate != 1200)
+  if (g_settings.voiceBitrate != 3200 && g_settings.voiceBitrate != 2400 && g_settings.voiceBitrate != 1600 && g_settings.voiceBitrate != 1200)
     g_settings.voiceBitrate = 2400;
   if (g_settings.micGainDb < -10 || g_settings.micGainDb > 30) g_settings.micGainDb = 12;
   if (g_settings.audioGainDb < -40 || g_settings.audioGainDb > 30) g_settings.audioGainDb = -12;

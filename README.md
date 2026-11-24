@@ -14,6 +14,8 @@ https://claude.ai/artifact/E8x5DL42hH3cXBXfDEWVhU
 
 ## Status
 
+**0.6.4:** `set codec 3200` for the `audio loop codec` test only (too fast for a slot; PTT on air refuses it).
+
 **0.6.3:** voice quality checks: `audio micgain <dB>` (default +12 dB, saved) and `audio loop codec`, which runs the mic through Codec2 encode and decode locally with no radio while PTT is held.
 
 **0.6.2:** PTT on GPIO20: release the S3 native-USB pad so the button press reaches the GPIO input.
@@ -187,7 +189,7 @@ follow whatever the talker sends. Playback starts with about 180 ms buffered, so
 mouth-to-ear delay is roughly 300-400 ms. The net manager doesn't free silent nodes'
 slots while voice is active. Voice needs hop on and time sync (bench or gps).
 
-Commands: `set voice on|off`, `set codec 2400|1600|1200`, and `status` shows voice
+Commands: `set voice on|off`, `set codec 2400|1600|1200` (3200 for `audio loop codec` only), and `status` shows voice
 counters (packets, lost, encode/decode time). `audio gain` sets playback volume.
 
 Codec2 comes from https://github.com/meshtastic/ESP32_Codec2 (pinned in platformio.ini,
@@ -225,7 +227,7 @@ set interval <ms>    test ping interval when hop is off
 set time <mode>      local | bench | benchmaster | gps
 set gps <rx> [tx] [pps]  GPS pins on the ESP32 (reboot to apply)
 set voice on|off     PTT sends Codec2 voice (default on)
-set codec <rate>     Codec2 2400 (default), 1600 or 1200
+set codec <rate>     Codec2 2400 (default), 1600 or 1200; 3200 = loopback test only
 pinscan              find which GPIO a signal (e.g. GPS TX) is wired to
 reboot
 ```
