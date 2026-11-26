@@ -14,6 +14,8 @@ https://claude.ai/artifact/E8x5DL42hH3cXBXfDEWVhU
 
 ## Status
 
+**0.7.3:** two bench masters can now find each other: a master skips about 1 beacon in 8 (never two in a row) to listen, so the 0.7.2 lower-ID rule can kick in; bench nodes warn when they hear beacons from two different masters.
+
 **0.7.2:** only one bench master: a bench master that hears another master with a lower ID switches itself to `time bench` (saved) and prints a notice; the lower ID keeps going and prints a warning. The `status` airtime label now shows the real largest packet (70 bytes).
 
 **0.7.1:** slot timing pulse on GPIO19: the radio releases the S3's native USB pads (GPIO19/20) at startup, not only when audio starts, and the pulse is at least 100 us wide.

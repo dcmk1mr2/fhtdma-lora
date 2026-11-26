@@ -251,8 +251,15 @@ static void runSlotted() {
     pendingFromQueue = false;
     pendingOwn = false;
     if (benchSync) {
-      if (g_settings.timeMode == TimeMode::BenchMaster)
-        havePending = fillFromQueueOrFiller(SlotKind::Sync, slot, pending, pendingFromQueue);
+      if (g_settings.timeMode == TimeMode::BenchMaster) {
+        // Two masters beacon in the same sync slot and can never hear each other.
+        // Listen instead in about 1 sync slot in 8 (never two in a row, so bench
+        // nodes don't lose sync) so a second master gets noticed (app.cpp).
+        static bool skippedLast = false;
+        bool skip = !skippedLast && random(0, 8) == 0;
+        skippedLast = skip;
+        if (!skip) havePending = fillFromQueueOrFiller(SlotKind::Sync, slot, pending, pendingFromQueue);
+      }
     } else {
       size_t len = 0;
       net::SlotUse use = net::planSlot(slot, pending.buf, sizeof(pending.buf), len);

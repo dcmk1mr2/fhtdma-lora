@@ -140,6 +140,19 @@ static void onRx(const uint8_t* data, size_t len, const radio::RxInfo& info) {
           }
         }
       }
+      if (g_settings.timeMode == TimeMode::Bench) {
+        // Beacons from two different masters: the bench is split into two clocks.
+        static uint8_t lastSrc = 0xFF;
+        static uint32_t lastMs = 0, lastWarn = 0;
+        uint32_t now = millis();
+        if (lastSrc != 0xFF && lastSrc != h.src && now - lastMs < 20000 && (lastWarn == 0 || now - lastWarn > 10000)) {
+          lastWarn = now ? now : 1;
+          terminal::printAsync("! Time beacons from two bench masters (node %u and node %u). Only one node should be benchmaster",
+                               lastSrc, h.src);
+        }
+        lastSrc = h.src;
+        lastMs = now;
+      }
       if (plen >= 8 && g_settings.timeMode == TimeMode::Bench) {
         bool first = !timebase::synced();
         timebase::syncFromBeacon(getI64(p), info.rxDoneLocalUs);
