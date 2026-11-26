@@ -101,6 +101,10 @@ monitors, and double-click `upload_all.bat` (or run `.\upload_all.ps1`). It buil
 once, finds every CP210x board and uploads to each. Use `-Ports COM3,COM5` to pick
 ports, or `-Env lora32_v21` for another board type.
 
+**Open a terminal on every board (Windows):** double-click `putty_all.bat`. It opens a
+PuTTY window at 115200 8N1 for each COM port it finds. Edit the `PUTTY` line if putty.exe
+isn't in `C:\Program Files\PuTTY`.
+
 If an upload stalls at "Connecting...", hold the PRG/BOOT button until it starts.
 On Windows the boards need the CP210x USB driver.
 
